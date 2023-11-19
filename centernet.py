@@ -36,17 +36,19 @@ class CenterNet(nn.Module):
         out = self.head(features[0])
         return out
     
-
-if __name__ == "__main__":
- 
+def create_model():
     backbone = resnet_fpn_backbone(
         'resnet18', # resnet18, resnet50
         pretrained=True,
         trainable_layers=5,
         returned_layers=[2,3,4]
     )
-
     net = CenterNet(backbone)
+    return net
+
+if __name__ == "__main__":
+ 
+    net = create_model()
     x = torch.randn(1, 3, 512, 512)
     y = net(x)
 
