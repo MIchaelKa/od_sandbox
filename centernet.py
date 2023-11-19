@@ -31,7 +31,7 @@ class CenterNet(nn.Module):
         features = self.backbone(x)
         features = list(features.values())
 
-        print(features[0].shape)
+        # print(features[0].shape)
 
         out = self.head(features[0])
         return out
@@ -40,7 +40,7 @@ def create_model():
     backbone = resnet_fpn_backbone(
         'resnet18', # resnet18, resnet50
         pretrained=True,
-        trainable_layers=5,
+        trainable_layers=2,
         returned_layers=[2,3,4]
     )
     net = CenterNet(backbone)

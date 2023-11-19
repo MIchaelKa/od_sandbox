@@ -8,7 +8,7 @@ from PIL import Image
 
 IMG_WIDTH = 384
 IMG_HEIGHT = IMG_WIDTH
-MODEL_SCALE = 8
+MODEL_SCALE = 8 # How to calculate this?
 
 class PennFudanDataset(Dataset):
     def __init__(self, root, train):
