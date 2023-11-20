@@ -30,9 +30,7 @@ class CenterNet(nn.Module):
     def forward(self, x):
         features = self.backbone(x)
         features = list(features.values())
-
         # print(features[0].shape)
-
         out = self.head(features[0])
         return out
     

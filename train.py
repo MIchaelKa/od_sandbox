@@ -5,6 +5,8 @@ from dataset.penn_fudan.penn_fudan_dataset import PennFudanDataset
 import torch
 from torch.utils.data import Subset, DataLoader
 
+import torch.nn.functional as F
+
 from common.logger import logger
 import logging
 
@@ -27,21 +29,34 @@ def get_dataset():
 
     return dataset_train, dataset_test
 
-# TODO: Use losses from pytorch
 def criterion(prediction, mask, bbox):
-
-    logger.info(f'min: {torch.min(prediction[:,0]).item()}, max: {torch.max(prediction[:,0]).item()}')
 
     # 1. Binary mask loss
     pred_mask = torch.sigmoid(prediction[:,0])
-    alpha = 0.99995
-    mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
-    mask_loss = -mask_loss.mean(0).sum()
+    mask_loss = mask * torch.log(pred_mask + 1e-12) + (1 - mask) * torch.log(1 - pred_mask + 1e-12)
+    mask_loss = -mask_loss.mean(0).mean()
+    # mask_loss = -mask_loss.sum(0).sum()
+    # mask_loss = -mask_loss.mean(0).sum() # original
+    logger.debug(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords
     pred_bbox = prediction[:,1:]
     regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
     regr_loss = regr_loss.mean()
+    logger.debug(f'regr_loss: {regr_loss}')
+
+    loss = mask_loss + regr_loss
+
+    return loss
+
+def criterion_2(prediction, mask, bbox):
+
+    mask_loss = F.binary_cross_entropy_with_logits(prediction[:,0], mask, reduction='mean')
+    logger.debug(f'mask_loss: {mask_loss}')
+
+    pred_bbox = prediction[:,1:]
+    regr_loss = F.l1_loss(pred_bbox * mask.unsqueeze(1), bbox, reduction='mean')
+    logger.debug(f'regr_loss: {regr_loss}')
 
     loss = mask_loss + regr_loss
 
@@ -65,7 +80,8 @@ def train_epoch(model, data_loader, optimizer):
 
         output = model(image)
 
-        loss = criterion(output, mask, bbox)
+        logger.info(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
+        loss = criterion_2(output, mask, bbox)
 
         optimizer.zero_grad()
         loss.backward()
@@ -76,13 +92,16 @@ def train_epoch(model, data_loader, optimizer):
 
 def test_loss(model, data_loader):
 
-    print('Testing loss...')
+    logger.debug('Testing loss...')
     data_tensor = next(iter(data_loader))
     image, mask, bbox = data_tensor # [B,C,H,W], [B,H,W], [B,4,H,W]
-    print(image.shape, mask.shape, bbox.shape)
+    logger.debug(f'image: {image.shape}, mask: {mask.shape}, bbox: {bbox.shape}')
 
     loss = criterion(model(image), mask, bbox)
-    print(loss)
+    logger.debug(f'loss: {loss}')
+
+    loss_2 = criterion_2(model(image), mask, bbox)
+    logger.debug(f'loss_2: {loss_2}')
 
     
 def main():
@@ -94,7 +113,7 @@ def main():
 
     dataset_train, dataset_test = get_dataset()
 
-    data_loader_train = DataLoader(dataset_train, batch_size=8, shuffle=True, num_workers=0)
+    data_loader_train = DataLoader(dataset_train, batch_size=16, shuffle=True, num_workers=0)
     data_loader_test = DataLoader(dataset_test, batch_size=8, shuffle=False, num_workers=0)
 
     model = create_model()
@@ -103,7 +122,6 @@ def main():
 
     model_name = 'centernet_v1'
     model_save_name = f'{model_name}.pth'
-
     train(model, data_loader_train, model_save_name)
 
 if __name__ == "__main__":
