@@ -7,6 +7,8 @@ from torch.utils.data import Subset, DataLoader
 
 import torch.nn.functional as F
 
+from torchvision.ops.focal_loss import sigmoid_focal_loss
+
 from common.logger import logger
 import logging
 
@@ -29,7 +31,7 @@ def get_dataset():
 
     return dataset_train, dataset_test
 
-def criterion(prediction, mask, bbox):
+def criterion_1(prediction, mask, bbox):
 
     # 1. Binary mask loss
     pred_mask = torch.sigmoid(prediction[:,0])
@@ -49,9 +51,28 @@ def criterion(prediction, mask, bbox):
 
     return loss
 
+def criterion_1_5(prediction, mask, bbox):
+    # 1. Binary mask loss
+    pred_mask = torch.sigmoid(prediction[:,0])
+    alpha = 0.995
+    mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
+    mask_loss = -mask_loss.mean(0).mean()
+    logger.debug(f'mask_loss: {mask_loss}')
+
+    # 2. L1 loss for bbox coords
+    pred_bbox = prediction[:,1:]
+    regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask)
+    regr_loss = regr_loss.mean()
+    logger.debug(f'regr_loss: {regr_loss}')
+
+    loss = mask_loss + regr_loss
+
+    return loss
+
 def criterion_2(prediction, mask, bbox):
 
-    mask_loss = F.binary_cross_entropy_with_logits(prediction[:,0], mask, reduction='mean')
+    # mask_loss = F.binary_cross_entropy_with_logits(prediction[:,0], mask, reduction='mean')
+    mask_loss = sigmoid_focal_loss(prediction[:,0], mask, alpha=0.9, gamma=5, reduction='mean')
     logger.debug(f'mask_loss: {mask_loss}')
 
     pred_bbox = prediction[:,1:]
@@ -61,6 +82,8 @@ def criterion_2(prediction, mask, bbox):
     loss = mask_loss + regr_loss
 
     return loss
+
+# TODO: add center-ness loss
 
 def train(model, data_loader_train, model_save_name):
     num_epochs = 10
@@ -97,7 +120,7 @@ def test_loss(model, data_loader):
     image, mask, bbox = data_tensor # [B,C,H,W], [B,H,W], [B,4,H,W]
     logger.debug(f'image: {image.shape}, mask: {mask.shape}, bbox: {bbox.shape}')
 
-    loss = criterion(model(image), mask, bbox)
+    loss = criterion_1(model(image), mask, bbox)
     logger.debug(f'loss: {loss}')
 
     loss_2 = criterion_2(model(image), mask, bbox)

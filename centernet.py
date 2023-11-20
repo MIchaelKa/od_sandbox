@@ -13,7 +13,7 @@ class Head(nn.Module):
             nn.Conv2d(256, 128, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(128, 5, kernel_size=1, padding=0),
-            nn.ReLU(inplace=True)
+            # nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
