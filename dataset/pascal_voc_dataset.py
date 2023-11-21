@@ -1,8 +1,16 @@
+import os
+import json
+import numpy as np
+
 import torch
 from torch.utils.data import Dataset
-import json
-import os
+
+from torchvision.transforms import functional as TF
 from PIL import Image
+
+IMG_WIDTH = 384
+IMG_HEIGHT = IMG_WIDTH
+MODEL_SCALE = 8 # How to calculate this?
 
 # from transforms import get_transform_to_show
 
@@ -25,10 +33,6 @@ class PascalVOCDataset(Dataset):
         self.split = split.upper()
         self.transforms = transforms
 
-        # if self.transforms is None:
-        #     print('get_transform_to_show')
-        #     self.transforms = get_transform_to_show()
-
         # Read data files
         with open(os.path.join(data_folder, self.split + '_images.json'), 'r') as j:
             self.images = json.load(j)
@@ -37,6 +41,9 @@ class PascalVOCDataset(Dataset):
 
         assert len(self.images) == len(self.objects)
 
+    def __len__(self):
+        return len(self.images)
+
     def __getitem__(self, i):
         # Read image
         image = Image.open(self.images[i], mode='r')
@@ -44,29 +51,45 @@ class PascalVOCDataset(Dataset):
 
         # Read objects in this image (bounding boxes, labels, difficulties)
         objects = self.objects[i]
-        boxes = torch.FloatTensor(objects['boxes'])  # (n_objects, 4)
-        labels = torch.LongTensor(objects['labels'])  # (n_objects)
-        difficulties = torch.ByteTensor(objects['difficulties'])  # (n_objects)
+        boxes = np.array(objects['boxes'])  # (n_objects, 4)
+        labels = np.array(objects['labels'])  # (n_objects)
+        difficulties = np.array(objects['difficulties'])  # (n_objects)
 
         # Discard difficult objects, if desired
         if not self.keep_difficult:
-            mask = (1 - difficulties).type(torch.BoolTensor)
+            mask = difficulties != 1
             boxes = boxes[mask]
             labels = labels[mask]
             difficulties = difficulties[mask]
 
-        # Apply transformations
-        # image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
+        orig_width, orig_height = image.size
 
-        target = {}
-        target["boxes"] = boxes
-        target["labels"] = labels
-        target["difficulties"] = difficulties
+        image = TF.resize(image, (IMG_WIDTH, IMG_HEIGHT))
+        image = TF.to_tensor(image).float()
 
-        if self.transforms is not None:
-            image, target = self.transforms(image, target)
+        center_mask = np.zeros((IMG_WIDTH // MODEL_SCALE, IMG_HEIGHT // MODEL_SCALE), dtype='float32')
+        regr_bbox = np.zeros((IMG_WIDTH // MODEL_SCALE, IMG_HEIGHT // MODEL_SCALE, 4), dtype='float32')
 
-        return image, target
+        for box in boxes:
+            xmin, ymin, xmax, ymax = box
 
-    def __len__(self):
-        return len(self.images)
+            x = xmin + (xmax - xmin) // 2
+            y = ymin + (ymax - ymin) // 2
+
+            x = x * (IMG_WIDTH / orig_width)
+            x = x / MODEL_SCALE
+            x = np.round(x).astype('int')
+
+            y = y * (IMG_HEIGHT / orig_height)
+            y = y / MODEL_SCALE
+            y = np.round(y).astype('int')
+
+            center_mask[y, x] = 1
+            regr_bbox[y, x] = [xmin * (IMG_WIDTH / orig_width),
+                               ymin * (IMG_HEIGHT / orig_height),
+                               xmax * (IMG_WIDTH / orig_width),
+                               ymax * (IMG_HEIGHT / orig_height)]
+
+        regr_bbox = np.transpose(regr_bbox, (2, 0, 1))
+
+        return image, center_mask, regr_bbox
