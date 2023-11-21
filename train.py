@@ -1,6 +1,6 @@
 
 from centernet import create_model
-from dataset.penn_fudan.penn_fudan_dataset import PennFudanDataset
+from dataset.penn_fudan_dataset import PennFudanDataset
 
 import torch
 from torch.utils.data import Subset, DataLoader
@@ -72,7 +72,7 @@ def criterion_1_5(prediction, mask, bbox):
 def criterion_2(prediction, mask, bbox):
 
     # mask_loss = F.binary_cross_entropy_with_logits(prediction[:,0], mask, reduction='mean')
-    mask_loss = sigmoid_focal_loss(prediction[:,0], mask, alpha=0.9, gamma=5, reduction='mean')
+    mask_loss = sigmoid_focal_loss(prediction[:,0], mask, alpha=0.95, gamma=5, reduction='mean')
     logger.debug(f'mask_loss: {mask_loss}')
 
     pred_bbox = prediction[:,1:]
