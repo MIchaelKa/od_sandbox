@@ -12,17 +12,15 @@ def criterion_1(prediction, mask, bbox):
     mask_loss = mask * torch.log(pred_mask + 1e-12) + (1 - mask) * torch.log(1 - pred_mask + 1e-12)
 
     # TODO: sum vs. mean
-    mask_loss = -mask_loss.mean(0).mean()
-    # mask_loss = -mask_loss.sum(0).sum()
-    # mask_loss = -mask_loss.mean(0).sum() # original
+    mask_loss = -mask_loss.mean(0).sum()
     
-    logger.debug(f'mask_loss: {mask_loss}')
+    logger.info(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords
     pred_bbox = prediction[:,1:]
     regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
     regr_loss = regr_loss.mean(0)
-    logger.debug(f'regr_loss: {regr_loss}')
+    logger.info(f'regr_loss: {regr_loss}')
 
     loss = mask_loss + regr_loss
 
@@ -54,20 +52,23 @@ def criterion_1_5(prediction, mask, bbox):
     pred_mask = torch.sigmoid(prediction[:,0])
     alpha = 0.995
     mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
+    # mask_loss = mask * (1 - pred_mask)**2 * torch.log(pred_mask + 1e-12) + (1 - mask) * pred_mask**2 * torch.log(1 - pred_mask + 1e-12)
     mask_loss = -mask_loss.mean(0).sum()
     logger.info(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords
     pred_bbox = prediction[:,1:]
-
-    # TODO: sum(1).sum(1) vs. mean() only
+    # .sum(1).sum(1) / mask.sum(1).sum(1) - for calculating mean only for non-zero mask
+    # regr_loss.mean() - for calculating mean for all mask where most of the pixels are zero
     regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
-    regr_loss = regr_loss.mean(0)
+    regr_loss = regr_loss.mean()
 
     logger.info(f'regr_loss: {regr_loss}')
 
-    beta = 0.5
-    loss = (1 - beta) * mask_loss + beta * regr_loss
+    beta = 0.9
+    # loss = (1 - beta) * mask_loss + beta * regr_loss
+    loss = mask_loss + regr_loss
+    # loss = mask_loss
 
     return loss
 

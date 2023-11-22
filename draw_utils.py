@@ -50,7 +50,7 @@ def visualize_dataset(dataset, count=5, size=6):
         # plt.imshow(bboxs[:,:,2])
         plt.axis('off')
 
-def make_prediction(model, dataset, index):
+def make_prediction(model, dataset, index, threshold = 0.5):
     test_img_t, test_mask_t, test_bboxs_t = dataset[index]
 
     model.eval()
@@ -58,13 +58,12 @@ def make_prediction(model, dataset, index):
 
     pred_mask = pred[:,0]
     # TODO: how to get good distribution for sigmoid?
-    # pred_mask = torch.sigmoid(pred[:,0])
+    pred_mask = torch.sigmoid(pred[:,0])
     
     bboxs = pred[:,1:]
 
     pred_img = pred_mask.squeeze().detach().cpu().numpy()
 
-    threshold = 0
     logger.info(f'threshold: {threshold}')
     logger.info(f'min: {np.min(pred_img)}, max: {np.max(pred_img)}')
     pred_img = np.where(pred_img > threshold, pred_img, 0)
@@ -74,7 +73,7 @@ def make_prediction(model, dataset, index):
     img_arr = np.array(T.ToPILImage()(test_img_t))
     xs, ys = np.nonzero(pred_img)
     bboxs = bboxs.squeeze().detach().cpu().numpy()
-    bboxs = np.transpose(bboxs, (1, 2, 0))
+    bboxs = np.transpose(bboxs, (1, 2, 0)) * 384
     center_bboxs = np.int32(bboxs[xs, ys])
     for bbox in center_bboxs:
         # print(bbox)

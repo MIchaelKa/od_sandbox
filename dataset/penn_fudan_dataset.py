@@ -48,12 +48,12 @@ class PennFudanDataset(Dataset):
         img = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path)
 
-        if self.train:
-            img, mask = self.transform(img, mask)
+        # if self.train:
+        #     img, mask = self.transform(img, mask)
 
         img = TF.resize(img, (IMG_WIDTH, IMG_HEIGHT))
 
-        # can't resize mask due to incorrect result (see above)
+        # can't resize mask due to incorrect result (see colab notebook)
         # mask = TF.resize(mask, (IMG_WIDTH, IMG_HEIGHT))
 
         img = TF.to_tensor(img).float()
@@ -93,11 +93,11 @@ class PennFudanDataset(Dataset):
             # center_mask[y-self.g_kernel_w:y+self.g_kernel_w+1,
             #             x-self.g_kernel_w:x+self.g_kernel_w+1] = self.g_kernel
             
-            regr_bbox[y, x] = [xmin * (IMG_WIDTH / orig_width),
-                               ymin * (IMG_HEIGHT / orig_height),
-                               xmax * (IMG_WIDTH / orig_width),
-                               ymax * (IMG_HEIGHT / orig_height)]
+            regr_bbox[y, x] = [xmin / orig_width,
+                               ymin / orig_height,
+                               xmax / orig_width,
+                               ymax / orig_height]
 
         regr_bbox = np.transpose(regr_bbox, (2, 0, 1))
 
-        return [img, center_mask, regr_bbox]
+        return img, center_mask, regr_bbox
