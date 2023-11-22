@@ -5,17 +5,14 @@ from dataset.penn_fudan_dataset import PennFudanDataset
 import torch
 from torch.utils.data import Subset, DataLoader
 
-import torch.nn.functional as F
-
-from torchvision.ops.focal_loss import sigmoid_focal_loss
-
 from common.logger import logger
 import logging
 
 from common.utils import get_device, seed_everything
+from criterion import *
 
 def get_dataset():
-    ROOT_DIR = 'dataset/penn_fudan/PennFudanPed'
+    ROOT_DIR = 'data/PennFudanPed'
 
     dataset_train = PennFudanDataset(ROOT_DIR, train=True)
     dataset_test = PennFudanDataset(ROOT_DIR, train=False)
@@ -31,62 +28,8 @@ def get_dataset():
 
     return dataset_train, dataset_test
 
-def criterion_1(prediction, mask, bbox):
-
-    # 1. Binary mask loss
-    pred_mask = torch.sigmoid(prediction[:,0])
-    mask_loss = mask * torch.log(pred_mask + 1e-12) + (1 - mask) * torch.log(1 - pred_mask + 1e-12)
-    mask_loss = -mask_loss.mean(0).mean()
-    # mask_loss = -mask_loss.sum(0).sum()
-    # mask_loss = -mask_loss.mean(0).sum() # original
-    logger.debug(f'mask_loss: {mask_loss}')
-
-    # 2. L1 loss for bbox coords
-    pred_bbox = prediction[:,1:]
-    regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
-    regr_loss = regr_loss.mean()
-    logger.debug(f'regr_loss: {regr_loss}')
-
-    loss = mask_loss + regr_loss
-
-    return loss
-
-def criterion_1_5(prediction, mask, bbox):
-    # 1. Binary mask loss
-    pred_mask = torch.sigmoid(prediction[:,0])
-    alpha = 0.995
-    mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
-    mask_loss = -mask_loss.mean(0).mean()
-    logger.debug(f'mask_loss: {mask_loss}')
-
-    # 2. L1 loss for bbox coords
-    pred_bbox = prediction[:,1:]
-    regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask)
-    regr_loss = regr_loss.mean()
-    logger.debug(f'regr_loss: {regr_loss}')
-
-    loss = mask_loss + regr_loss
-
-    return loss
-
-def criterion_2(prediction, mask, bbox):
-
-    # mask_loss = F.binary_cross_entropy_with_logits(prediction[:,0], mask, reduction='mean')
-    mask_loss = sigmoid_focal_loss(prediction[:,0], mask, alpha=0.95, gamma=5, reduction='mean')
-    logger.debug(f'mask_loss: {mask_loss}')
-
-    pred_bbox = prediction[:,1:]
-    regr_loss = F.l1_loss(pred_bbox * mask.unsqueeze(1), bbox, reduction='mean')
-    logger.debug(f'regr_loss: {regr_loss}')
-
-    loss = mask_loss + regr_loss
-
-    return loss
-
-# TODO: add center-ness loss
-
 def train(model, data_loader_train, model_save_name):
-    num_epochs = 10
+    num_epochs = 5
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     for epoch in range(num_epochs):
@@ -103,8 +46,8 @@ def train_epoch(model, data_loader, optimizer):
 
         output = model(image)
 
-        logger.info(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
-        loss = criterion_2(output, mask, bbox)
+        logger.debug(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
+        loss = criterion_1_1(output, mask, bbox)
 
         optimizer.zero_grad()
         loss.backward()

@@ -11,10 +11,10 @@ class Head(nn.Module):
         # Shared head for center-ness and box regression
         self.head = nn.Sequential(
             nn.Conv2d(256, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
+            # nn.BatchNorm2d(128),
+            # nn.ReLU(inplace=True),
+            # nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            # nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             nn.Conv2d(128, 5, kernel_size=1, padding=0),
             # nn.ReLU(inplace=True)

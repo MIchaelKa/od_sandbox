@@ -33,6 +33,13 @@ class PascalVOCDataset(Dataset):
         self.split = split.upper()
         self.transforms = transforms
 
+        self.g_kernel = np.array([
+            [0.0625, 0.125, 0.0625],
+            [0.125, 0.25, 0.125],
+            [0.0625, 0.125, 0.0625]]
+        )
+        self.g_kernel_w = self.g_kernel.shape[0] // 2
+
         # Read data files
         with open(os.path.join(data_folder, self.split + '_images.json'), 'r') as j:
             self.images = json.load(j)
@@ -84,7 +91,10 @@ class PascalVOCDataset(Dataset):
             y = y / MODEL_SCALE
             y = np.round(y).astype('int')
 
-            center_mask[y, x] = 1
+            # center_mask[y, x] = 1
+            center_mask[y-self.g_kernel_w:y+self.g_kernel_w+1,
+                        x-self.g_kernel_w:x+self.g_kernel_w+1] = self.g_kernel
+            
             regr_bbox[y, x] = [xmin * (IMG_WIDTH / orig_width),
                                ymin * (IMG_HEIGHT / orig_height),
                                xmax * (IMG_WIDTH / orig_width),
