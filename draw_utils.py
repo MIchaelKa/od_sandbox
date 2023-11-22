@@ -2,8 +2,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import torch
 
 import torchvision.transforms as T
+
+from common.logger import logger
 
 def show_images(images, titles, size=5):
     
@@ -50,22 +53,20 @@ def visualize_dataset(dataset, count=5, size=6):
 def make_prediction(model, dataset, index):
     test_img_t, test_mask_t, test_bboxs_t = dataset[index]
 
-    print(test_img_t.shape)
-
     model.eval()
     pred = model(test_img_t)
 
-    print(pred.shape)
-
     pred_mask = pred[:,0]
+    # TODO: how to get good distribution for sigmoid?
     # pred_mask = torch.sigmoid(pred[:,0])
+    
     bboxs = pred[:,1:]
 
     pred_img = pred_mask.squeeze().detach().cpu().numpy()
 
-    # threshold = 15
     threshold = 0
-    print(np.min(pred_img), np.max(pred_img))
+    logger.info(f'threshold: {threshold}')
+    logger.info(f'min: {np.min(pred_img)}, max: {np.max(pred_img)}')
     pred_img = np.where(pred_img > threshold, pred_img, 0)
 
     # draw bbox

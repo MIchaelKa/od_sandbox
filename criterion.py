@@ -10,9 +10,12 @@ def criterion_1(prediction, mask, bbox):
     # 1. Binary mask loss
     pred_mask = torch.sigmoid(prediction[:,0])
     mask_loss = mask * torch.log(pred_mask + 1e-12) + (1 - mask) * torch.log(1 - pred_mask + 1e-12)
+
+    # TODO: sum vs. mean
     mask_loss = -mask_loss.mean(0).mean()
     # mask_loss = -mask_loss.sum(0).sum()
     # mask_loss = -mask_loss.mean(0).sum() # original
+    
     logger.debug(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords
@@ -32,33 +35,39 @@ def criterion_1_1(prediction, mask, bbox):
     alpha = 1000
     mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - mask) * torch.log(1 - pred_mask + 1e-12)
     mask_loss = -mask_loss.mean(0).sum()
-    logger.debug(f'mask_loss: {mask_loss}')
+    logger.info(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords
     pred_bbox = prediction[:,1:]
     regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
     regr_loss = regr_loss.mean(0)
-    logger.debug(f'regr_loss: {regr_loss}')
+    logger.info(f'regr_loss: {regr_loss}')
 
     loss = mask_loss + alpha * regr_loss
 
     return loss
 
 def criterion_1_5(prediction, mask, bbox):
+    # TODO: is this loss work with g_kernel?
+
     # 1. Binary mask loss
     pred_mask = torch.sigmoid(prediction[:,0])
     alpha = 0.995
     mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
-    mask_loss = -mask_loss.mean(0).mean()
-    logger.debug(f'mask_loss: {mask_loss}')
+    mask_loss = -mask_loss.mean(0).sum()
+    logger.info(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords
     pred_bbox = prediction[:,1:]
-    regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask)
-    regr_loss = regr_loss.mean()
-    logger.debug(f'regr_loss: {regr_loss}')
 
-    loss = mask_loss + regr_loss
+    # TODO: sum(1).sum(1) vs. mean() only
+    regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
+    regr_loss = regr_loss.mean(0)
+
+    logger.info(f'regr_loss: {regr_loss}')
+
+    beta = 0.5
+    loss = (1 - beta) * mask_loss + beta * regr_loss
 
     return loss
 

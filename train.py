@@ -46,8 +46,8 @@ def train_epoch(model, data_loader, optimizer):
 
         output = model(image)
 
-        logger.debug(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
-        loss = criterion_1_1(output, mask, bbox)
+        logger.info(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
+        loss = criterion_1_5(output, mask, bbox)
 
         optimizer.zero_grad()
         loss.backward()

@@ -24,7 +24,9 @@ class PennFudanDataset(Dataset):
             [0.0625, 0.125, 0.0625],
             [0.125, 0.25, 0.125],
             [0.0625, 0.125, 0.0625]]
-        )
+        ) * 4
+        # print(self.g_kernel)
+        
         self.g_kernel_w = self.g_kernel.shape[0] // 2
 
     def __len__(self):
