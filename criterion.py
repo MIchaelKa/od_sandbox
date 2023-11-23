@@ -5,6 +5,19 @@ from common.logger import logger
 import torch.nn.functional as F
 from torchvision.ops.focal_loss import sigmoid_focal_loss
 
+def test_loss(model, data_loader):
+
+    logger.debug('Testing loss...')
+    data_tensor = next(iter(data_loader))
+    image, mask, bbox = data_tensor # [B,C,H,W], [B,H,W], [B,4,H,W]
+    logger.debug(f'image: {image.shape}, mask: {mask.shape}, bbox: {bbox.shape}')
+
+    loss = criterion_1(model(image), mask, bbox)
+    logger.debug(f'loss: {loss}')
+
+    loss_2 = criterion_2(model(image), mask, bbox)
+    logger.debug(f'loss_2: {loss_2}')
+
 def criterion_1(prediction, mask, bbox):
 
     # 1. Binary mask loss
@@ -54,7 +67,10 @@ def criterion_1_5(prediction, mask, bbox):
     alpha = 0.995
     mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
     # mask_loss = mask * (1 - pred_mask)**2 * torch.log(pred_mask + 1e-12) + (1 - mask) * pred_mask**2 * torch.log(1 - pred_mask + 1e-12)
+
     mask_loss = -mask_loss.mean(0).sum()
+    # mask_loss = -mask_loss.mean()
+
     logger.debug(f'mask_loss: {mask_loss}')
 
     # 2. L1 loss for bbox coords

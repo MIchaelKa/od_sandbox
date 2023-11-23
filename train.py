@@ -10,10 +10,12 @@ from torch.utils.data import Subset, DataLoader
 from common.logger import logger
 import logging
 
+from common.logger import create_tb_writer
+
 from common.utils import get_device, seed_everything
 from criterion import *
 
-print_every = 10
+from trainer import Trainer
 
 def get_dataset():
     return  get_dataset_voc()
@@ -51,60 +53,13 @@ def get_dataset_voc():
 
     return dataset_train, dataset_test
 
-def train(model, device, data_loader_train, model_save_name):
-    num_epochs = 3
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-
-    for epoch in range(num_epochs):
-        logger.info('epoch: {}'.format(epoch))
-        model.train()
-        train_epoch(model, device, data_loader_train, optimizer)
-
-    torch.save(model.state_dict(), model_save_name)
-    logger.info(f'Model saved to {model_save_name}')
-
-def train_epoch(model, device, data_loader, optimizer):
-
-    for iter_num, data_tensor in enumerate(data_loader):
-        image, mask, bbox = data_tensor
-        image = image.to(device)
-        mask = mask.to(device)
-        bbox = bbox.to(device)
-
-        # should mask have integer type?
-        # logger.info(f'tensor types: {image.dtype}, {mask.dtype}, {bbox.dtype}')
-
-        output = model(image)
-
-        logger.debug(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
-        loss = criterion_1_5(output, mask, bbox)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        loss_item = loss.item()
-
-        if print_every > 0 and iter_num % print_every == 0:
-            logger.info('iter: {:>4d}, loss = {:.5f}'.format(iter_num, loss_item))
-
-def test_loss(model, data_loader):
-
-    logger.debug('Testing loss...')
-    data_tensor = next(iter(data_loader))
-    image, mask, bbox = data_tensor # [B,C,H,W], [B,H,W], [B,4,H,W]
-    logger.debug(f'image: {image.shape}, mask: {mask.shape}, bbox: {bbox.shape}')
-
-    loss = criterion_1(model(image), mask, bbox)
-    logger.debug(f'loss: {loss}')
-
-    loss_2 = criterion_2(model(image), mask, bbox)
-    logger.debug(f'loss_2: {loss_2}')
-
     
 def main():
 
     seed_everything(1024)
+
+    experiment_name = 'base'
+    tb_writer = create_tb_writer(experiment_name)
 
     # DEBUG INFO WARNING ERROR CRITICAL
     logger.setLevel(logging.INFO)
@@ -119,12 +74,21 @@ def main():
     data_loader_test = DataLoader(dataset_test, batch_size=8, shuffle=False, num_workers=0)
 
     model = create_model().to(device)
-
     # test_loss(model, data_loader_train)
 
-    model_name = 'centernet_v1'
-    model_save_name = f'{model_name}.pth'
-    train(model, device, data_loader_train, model_save_name)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    criterion = criterion_1_5
+    num_epochs = 3
+
+    trainer = Trainer(
+        model=model,
+        device=device,
+        criterion=criterion,
+        optimizer=optimizer,
+        tb_writer=tb_writer
+    )
+    trainer.fit(data_loader_train, data_loader_test, num_epochs)
 
 if __name__ == "__main__":
     main()
