@@ -85,20 +85,20 @@ class PascalVOCDataset(Dataset):
 
             x = x * (IMG_WIDTH / orig_width)
             x = x / MODEL_SCALE
-            x = np.round(x).astype('int')
+            x = np.floor(x).astype('int')
 
             y = y * (IMG_HEIGHT / orig_height)
             y = y / MODEL_SCALE
-            y = np.round(y).astype('int')
+            y = np.floor(y).astype('int')
 
-            # center_mask[y, x] = 1
-            center_mask[y-self.g_kernel_w:y+self.g_kernel_w+1,
-                        x-self.g_kernel_w:x+self.g_kernel_w+1] = self.g_kernel
+            center_mask[y, x] = 1
+            # center_mask[y-self.g_kernel_w:y+self.g_kernel_w+1,
+            #             x-self.g_kernel_w:x+self.g_kernel_w+1] = self.g_kernel
             
-            regr_bbox[y, x] = [xmin * (IMG_WIDTH / orig_width),
-                               ymin * (IMG_HEIGHT / orig_height),
-                               xmax * (IMG_WIDTH / orig_width),
-                               ymax * (IMG_HEIGHT / orig_height)]
+            regr_bbox[y, x] = [xmin / orig_width,
+                               ymin / orig_height,
+                               xmax / orig_width,
+                               ymax / orig_height]
 
         regr_bbox = np.transpose(regr_bbox, (2, 0, 1))
 

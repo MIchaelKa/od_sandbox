@@ -84,7 +84,7 @@ def create_data_lists(voc07_path, voc12_path, output_folder):
     
 if __name__ == '__main__':
 
-    ROOT = '/Users/user006/Developer/projects_my/od_sandbox'
+    ROOT = '/data/src/od_sandbox'
 
     create_data_lists(
         voc07_path=None,

@@ -48,8 +48,8 @@ class PennFudanDataset(Dataset):
         img = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path)
 
-        # if self.train:
-        #     img, mask = self.transform(img, mask)
+        if self.train:
+            img, mask = self.transform(img, mask)
 
         img = TF.resize(img, (IMG_WIDTH, IMG_HEIGHT))
 
