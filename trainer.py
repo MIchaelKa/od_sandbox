@@ -1,5 +1,8 @@
 import torch
 
+import numpy as np
+import torchvision
+
 from common.logger import logger
 
 class Trainer():
@@ -22,15 +25,68 @@ class Trainer():
 
         logger.info('start training...')
 
-        for epoch in range(num_epochs):
-            logger.info('train epoch: {}'.format(epoch))
-            self.train_epoch(epoch, train_loader)
+        self.make_predictions(0, val_loader)
+
+        # for epoch in range(num_epochs):
+        #     logger.info('train epoch: {}'.format(epoch))
+        #     self.train_epoch(epoch, train_loader)
 
         if self.save_checkpoint:
             torch.save(self.model.state_dict(), self.model_save_name)
             logger.info(f'model saved to {self.model_save_name}')
 
-        self.writer.close()
+        self.tb_writer.close()
+
+    def make_predictions(self, epoch, data_loader):
+
+        # get one batch
+        data_tensor = next(iter(data_loader))
+        image, gt_mask, gt_bbox = data_tensor
+
+        image = image.to(self.device)
+        gt_mask = gt_mask.to(self.device)
+        gt_bbox = gt_bbox.to(self.device)
+
+        self.model.eval()
+
+        batch_pred = self.model(image)
+        batch_pred = batch_pred.detach().cpu()
+
+        # pred_mask = batch_pred[:,0,:,:]
+        # pred_mask = pred_mask.unsqueeze(1)
+        # print(pred_mask.shape)
+        # grid = torchvision.utils.make_grid(pred_mask)
+        # self.tb_writer.add_image('masks', grid, 0)
+        # return
+
+        for i, pred in enumerate(batch_pred):
+
+            print(pred.shape)
+
+            pred_mask = pred[0]
+            pred_mask = torch.sigmoid(pred_mask)
+            # pred_mask = pred_mask.unsqueeze(0)
+            pred_mask = pred_mask.numpy()
+            threshold = 0.5
+            pred_mask = np.int32(np.where(pred_mask > threshold, pred_mask, 0))
+            
+            print(pred_mask)
+
+            pred_bbox = pred[1:]
+            pred_bbox = pred_bbox.numpy()
+
+            pred_bbox = np.transpose(pred_bbox, (1, 2, 0)) * 384
+
+            print(pred_bbox.shape)
+
+            img = image[0].detach().cpu().numpy()
+            img = np.int32(np.transpose(img, (1, 2, 0)) * 255)
+            print(img.shape)
+            
+
+            # self.tb_writer.add_image('image', img, i)
+            self.tb_writer.add_image('mask', pred_mask, i, dataformats='HW')
+            # self.tb_writer.add_image('gt_mask', pred_mask, i)
      
 
     def train_epoch(self, epoch, data_loader):
