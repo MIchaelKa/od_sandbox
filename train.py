@@ -29,7 +29,7 @@ def get_dataset():
     return dataset_train, dataset_test
 
 def train(model, data_loader_train, model_save_name):
-    num_epochs = 50
+    num_epochs = 100
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     for epoch in range(num_epochs):
@@ -80,9 +80,9 @@ def main():
 
     dataset_train, dataset_test = get_dataset()
 
-    dataset_train = Subset(dataset_train, range(8))
+    dataset_train = Subset(dataset_train, range(4))
 
-    data_loader_train = DataLoader(dataset_train, batch_size=8, shuffle=True, num_workers=0)
+    data_loader_train = DataLoader(dataset_train, batch_size=4, shuffle=True, num_workers=0)
     data_loader_test = DataLoader(dataset_test, batch_size=8, shuffle=False, num_workers=0)
 
     model = create_model()

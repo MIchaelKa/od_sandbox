@@ -27,13 +27,15 @@ class SharedHead(nn.Module):
 class DecoupledHead(nn.Module):
     def __init__(self):
         super().__init__()
-        
-        self.conv = nn.Sequential(
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-        )
+
+        num_convs = 3
+        in_channels = 256
+        conv = []
+        for _ in range(num_convs):
+            conv.append(nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1))
+            # conv.append(nn.BatchNorm2d(256))
+            conv.append(nn.ReLU())
+        self.conv = nn.Sequential(*conv)
 
         self.head_reg = nn.Conv2d(256, 4, kernel_size=1, padding=0)
         self.head_cls = nn.Conv2d(256, 1, kernel_size=1, padding=0)
