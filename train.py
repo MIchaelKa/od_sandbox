@@ -28,26 +28,32 @@ def get_dataset():
 
     return dataset_train, dataset_test
 
-def train(model, data_loader_train, model_save_name):
-    num_epochs = 100
+def train(model, device, data_loader_train, model_save_name):
+    num_epochs = 200
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     for epoch in range(num_epochs):
         logger.info('epoch: {}'.format(epoch))
         model.train()
-        train_epoch(model, data_loader_train, optimizer)
+        train_epoch(model, device, data_loader_train, optimizer)
 
     torch.save(model.state_dict(), model_save_name)
     logger.info(f'Model saved to {model_save_name}')
 
-def train_epoch(model, data_loader, optimizer):
+def train_epoch(model, device, data_loader, optimizer):
 
     for iter_num, data_tensor in enumerate(data_loader):
         image, mask, bbox = data_tensor
+        image = image.to(device)
+        mask = mask.to(device)
+        bbox = bbox.to(device)
+
+        # should mask have integer type?
+        # logger.info(f'tensor types: {image.dtype}, {mask.dtype}, {bbox.dtype}')
 
         output = model(image)
 
-        logger.info(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
+        # logger.info(f'min: {torch.min(output[:,0]).item()}, max: {torch.max(output[:,0]).item()}')
         loss = criterion_1_5(output, mask, bbox)
 
         optimizer.zero_grad()
@@ -78,6 +84,8 @@ def main():
     # DEBUG INFO WARNING ERROR CRITICAL
     logger.setLevel(logging.INFO)
 
+    device = get_device()
+
     dataset_train, dataset_test = get_dataset()
 
     dataset_train = Subset(dataset_train, range(4))
@@ -85,13 +93,13 @@ def main():
     data_loader_train = DataLoader(dataset_train, batch_size=4, shuffle=True, num_workers=0)
     data_loader_test = DataLoader(dataset_test, batch_size=8, shuffle=False, num_workers=0)
 
-    model = create_model()
+    model = create_model().to(device)
 
     # test_loss(model, data_loader_train)
 
     model_name = 'centernet_v1'
     model_save_name = f'{model_name}.pth'
-    train(model, data_loader_train, model_save_name)
+    train(model, device, data_loader_train, model_save_name)
 
 if __name__ == "__main__":
     main()
