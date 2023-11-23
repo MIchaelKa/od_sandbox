@@ -22,7 +22,8 @@ def criterion_1(prediction, mask, bbox):
     regr_loss = regr_loss.mean(0)
     logger.info(f'regr_loss: {regr_loss}')
 
-    loss = mask_loss + regr_loss
+    # loss = mask_loss + regr_loss
+    loss = mask_loss
 
     return loss
 
@@ -67,8 +68,8 @@ def criterion_1_5(prediction, mask, bbox):
 
     beta = 0.9
     # loss = (1 - beta) * mask_loss + beta * regr_loss
-    # loss = mask_loss + regr_loss
-    loss = regr_loss
+    loss = mask_loss + regr_loss
+    # loss = mask_loss
 
     return loss
 

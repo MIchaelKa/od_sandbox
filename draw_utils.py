@@ -62,17 +62,18 @@ def make_prediction(model, dataset, index, threshold = 0.5):
     
     bboxs = pred[:,1:]
 
-    # pred_img = pred_mask.squeeze().detach().cpu().numpy()
-    pred_img = test_mask_t
+    pred_img = pred_mask.squeeze().detach().cpu().numpy()
+    # pred_img = test_mask_t
 
     logger.info(f'threshold: {threshold}')
     logger.info(f'min: {np.min(pred_img)}, max: {np.max(pred_img)}')
     pred_img = np.where(pred_img > threshold, pred_img, 0)
 
+    img_arr = np.array(T.ToPILImage()(test_img_t))
+
     # draw bbox
     color = (255, 0, 0)
-    img_arr = np.array(T.ToPILImage()(test_img_t))
-    xs, ys = np.nonzero(pred_img)
+    xs, ys = np.nonzero(test_mask_t) # pred_img, test_mask_t
     bboxs = bboxs.squeeze().detach().cpu().numpy()
     bboxs = np.transpose(bboxs, (1, 2, 0)) * 384
     center_bboxs = np.int32(bboxs[xs, ys])

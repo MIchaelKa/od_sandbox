@@ -34,6 +34,7 @@ def train(model, data_loader_train, model_save_name):
 
     for epoch in range(num_epochs):
         logger.info('epoch: {}'.format(epoch))
+        model.train()
         train_epoch(model, data_loader_train, optimizer)
 
     torch.save(model.state_dict(), model_save_name)
