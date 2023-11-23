@@ -62,7 +62,8 @@ def make_prediction(model, dataset, index, threshold = 0.5):
     
     bboxs = pred[:,1:]
 
-    pred_img = pred_mask.squeeze().detach().cpu().numpy()
+    # pred_img = pred_mask.squeeze().detach().cpu().numpy()
+    pred_img = test_mask_t
 
     logger.info(f'threshold: {threshold}')
     logger.info(f'min: {np.min(pred_img)}, max: {np.max(pred_img)}')

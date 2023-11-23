@@ -58,8 +58,8 @@ def criterion_1_5(prediction, mask, bbox):
 
     # 2. L1 loss for bbox coords
     pred_bbox = prediction[:,1:]
-    # .sum(1).sum(1) / mask.sum(1).sum(1) - for calculating mean only for non-zero mask
-    # regr_loss.mean() - for calculating mean for all mask where most of the pixels are zero
+    # .sum(1).sum(1) / mask.sum(1).sum(1) - for calculating mean only for non-zero pixels of mask
+    # regr_loss.mean() w/o above - for calculating mean for all the mask pixels where most of the them are zero
     regr_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
     regr_loss = regr_loss.mean()
 
@@ -67,8 +67,8 @@ def criterion_1_5(prediction, mask, bbox):
 
     beta = 0.9
     # loss = (1 - beta) * mask_loss + beta * regr_loss
-    loss = mask_loss + regr_loss
-    # loss = mask_loss
+    # loss = mask_loss + regr_loss
+    loss = regr_loss
 
     return loss
 
