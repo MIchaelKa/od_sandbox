@@ -78,7 +78,7 @@ def main():
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    criterion = criterion_1_5
+    criterion = Criterion()
     num_epochs = 3
 
     trainer = Trainer(

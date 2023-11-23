@@ -1,9 +1,53 @@
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from torchvision.ops.focal_loss import sigmoid_focal_loss
+
 from common.logger import logger
 
-import torch.nn.functional as F
-from torchvision.ops.focal_loss import sigmoid_focal_loss
+class Criterion(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, prediction, mask, bbox):
+        #
+        # 1. Binary mask loss
+        #
+        pred_mask = torch.sigmoid(prediction[:,0])
+        alpha = 0.995
+        mask_loss = alpha * mask * torch.log(pred_mask + 1e-12) + (1 - alpha) * (1 - mask) * torch.log(1 - pred_mask + 1e-12)
+        # mask_loss = mask * (1 - pred_mask)**2 * torch.log(pred_mask + 1e-12) + (1 - mask) * pred_mask**2 * torch.log(1 - pred_mask + 1e-12)
+
+        mask_loss = -mask_loss.mean(0).sum()
+        # mask_loss = -mask_loss.mean()
+
+        #
+        # 2. L1 loss for bbox coords
+        #
+        pred_bbox = prediction[:,1:]
+        # .sum(1).sum(1) / mask.sum(1).sum(1) - for calculating mean only for non-zero pixels of mask
+        # regr_loss.mean() w/o above - for calculating mean for all the mask pixels where most of the them are zero
+        box_loss = (torch.abs(pred_bbox - bbox).sum(1) * mask).sum(1).sum(1) / mask.sum(1).sum(1)
+        box_loss = box_loss.mean()
+
+        #
+        # 3. Sum
+        #
+        beta = 0.9
+        # loss = (1 - beta) * mask_loss + beta * box_loss
+        loss = mask_loss + box_loss
+        # loss = mask_loss
+
+        loss_dict = dict(
+            loss=loss,
+            mask_loss=mask_loss,
+            box_loss=box_loss
+        )
+
+        return loss_dict
 
 def test_loss(model, data_loader):
 
