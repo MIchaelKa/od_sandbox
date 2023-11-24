@@ -25,11 +25,10 @@ class Trainer():
 
         logger.info('start training...')
 
-        self.make_predictions(0, val_loader)
-
-        # for epoch in range(num_epochs):
-        #     logger.info('train epoch: {}'.format(epoch))
-        #     self.train_epoch(epoch, train_loader)
+        for epoch in range(num_epochs):
+            logger.info('train epoch: {}'.format(epoch))
+            self.train_epoch(epoch, train_loader)
+            self.make_predictions(0, val_loader)
 
         if self.save_checkpoint:
             torch.save(self.model.state_dict(), self.model_save_name)
@@ -41,53 +40,52 @@ class Trainer():
 
         # get one batch
         data_tensor = next(iter(data_loader))
-        image, gt_mask, gt_bbox = data_tensor
+        images, gt_masks, gt_bboxs = data_tensor
 
-        image = image.to(self.device)
-        gt_mask = gt_mask.to(self.device)
-        gt_bbox = gt_bbox.to(self.device)
+        images = images.to(self.device) # (B, 3, W, H)
+        gt_masks = gt_masks.to(self.device) # (B, W, H)
+        gt_bboxs = gt_bboxs.to(self.device) # (B, 4, W, H)
 
         self.model.eval()
+        batch_pred = self.model(images)
 
-        batch_pred = self.model(image)
-        batch_pred = batch_pred.detach().cpu()
+        batch_pred = batch_pred.detach().cpu() # (B, 5, W, H)
+        images = images.detach().cpu()
+        gt_masks = gt_masks.detach().cpu()
 
-        # pred_mask = batch_pred[:,0,:,:]
-        # pred_mask = pred_mask.unsqueeze(1)
-        # print(pred_mask.shape)
-        # grid = torchvision.utils.make_grid(pred_mask)
-        # self.tb_writer.add_image('masks', grid, 0)
-        # return
+        pred_masks = batch_pred[:2,0,:,:].unsqueeze(1)
+        grid_masks = torchvision.utils.make_grid(pred_masks)
+        self.tb_writer.add_image('masks', grid_masks, 0)
 
+        self.tb_writer.add_images('images', images, 0)
+
+        # pred.shape = (5, W, H)
         for i, pred in enumerate(batch_pred):
-
-            print(pred.shape)
-
-            pred_mask = pred[0]
+          
+            pred_mask = pred[0] # (W, H)
             pred_mask = torch.sigmoid(pred_mask)
-            # pred_mask = pred_mask.unsqueeze(0)
-            pred_mask = pred_mask.numpy()
+            # pred_mask = pred_mask.numpy()
             threshold = 0.5
-            pred_mask = np.int32(np.where(pred_mask > threshold, pred_mask, 0))
+            pred_mask = np.where(pred_mask > threshold, pred_mask, 0)
+           
+            pred_bbox = pred[1:] # (4, W, H)
+            pred_bbox = np.transpose(pred_bbox, (1, 2, 0)) * 384 # (W, H, 4)
+            xs, ys = np.nonzero(gt_masks[i].numpy()) # gt_mask, pred_mask
+            pred_bbox = pred_bbox[xs, ys] # (N, 4)
             
-            print(pred_mask)
+            gt_bbox = gt_bboxs[i]
+            gt_bbox = np.transpose(gt_bbox, (1, 2, 0)) * 384 # (W, H, 4)
+            xs, ys = np.nonzero(gt_masks[i].numpy())
+            gt_bbox = gt_bbox[xs, ys] # (N, 4)
 
-            pred_bbox = pred[1:]
-            pred_bbox = pred_bbox.numpy()
+            # self.tb_writer.add_image('image', image[i], i)
+            self.tb_writer.add_image_with_boxes(f'pred_image/{i}', images[i], pred_bbox, epoch)
+            self.tb_writer.add_image(f'pred_mask/{i}', pred_mask, epoch, dataformats='HW')
 
-            pred_bbox = np.transpose(pred_bbox, (1, 2, 0)) * 384
-
-            print(pred_bbox.shape)
-
-            img = image[0].detach().cpu().numpy()
-            img = np.int32(np.transpose(img, (1, 2, 0)) * 255)
-            print(img.shape)
+            if epoch == 0:
+                self.tb_writer.add_image_with_boxes(f'gt_image/{i}', images[i], gt_bbox, epoch)
+                self.tb_writer.add_image(f'gt_mask/{i}', gt_masks[i], epoch, dataformats='HW')
             
-
-            # self.tb_writer.add_image('image', img, i)
-            self.tb_writer.add_image('mask', pred_mask, i, dataformats='HW')
-            # self.tb_writer.add_image('gt_mask', pred_mask, i)
-     
 
     def train_epoch(self, epoch, data_loader):
 
@@ -97,14 +95,19 @@ class Trainer():
 
         for iter_num, data_tensor in enumerate(data_loader):
             image, mask, bbox = data_tensor
+
             image = image.to(self.device)
             mask = mask.to(self.device)
             bbox = bbox.to(self.device)
 
             global_iter = iter_start+iter_num
 
+            # TODO: visualize image, mask, bbox
+
             # should mask have integer type?
             # logger.info(f'tensor types: {image.dtype}, {mask.dtype}, {bbox.dtype}')
+            
+            # logger.info(f'image mean: {torch.mean(image)}')
 
             output = self.model(image)
 
