@@ -9,12 +9,12 @@ from PIL import Image
 
 IMG_WIDTH = 384
 IMG_HEIGHT = IMG_WIDTH
-MODEL_SCALE = 8 # How to calculate this?
 
 class PennFudanDataset(Dataset):
-    def __init__(self, root, train):
+    def __init__(self, root, train, stride):
         self.root = root
         self.train = train
+        self.stride = stride
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = list(sorted(os.listdir(os.path.join(root, "PNGImages"))))
@@ -66,8 +66,8 @@ class PennFudanDataset(Dataset):
 
         masks = (mask == obj_ids[:, None, None])
 
-        center_mask = np.zeros((IMG_WIDTH // MODEL_SCALE, IMG_HEIGHT // MODEL_SCALE), dtype='float32')
-        regr_bbox = np.zeros((IMG_WIDTH // MODEL_SCALE, IMG_HEIGHT // MODEL_SCALE, 4), dtype='float32')
+        center_mask = np.zeros((IMG_WIDTH // self.stride, IMG_HEIGHT // self.stride), dtype='float32')
+        regr_bbox = np.zeros((IMG_WIDTH // self.stride, IMG_HEIGHT // self.stride, 4), dtype='float32')
 
         # get center coordinates for each mask
         num_objs = len(obj_ids)
@@ -82,11 +82,11 @@ class PennFudanDataset(Dataset):
             y = ymin + (ymax - ymin) // 2
 
             x = x * (IMG_WIDTH / orig_width)
-            x = x / MODEL_SCALE
+            x = x / self.stride
             x = np.round(x).astype('int')
 
             y = y * (IMG_HEIGHT / orig_height)
-            y = y / MODEL_SCALE
+            y = y / self.stride
             y = np.round(y).astype('int')
 
             center_mask[y, x] = 1

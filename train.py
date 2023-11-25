@@ -17,19 +17,19 @@ from criterion import *
 
 from trainer import Trainer
 
-def get_dataset(dataset_name):
+def get_dataset(dataset_name, stride):
     if dataset_name == 'voc':
-        return  get_dataset_voc()
+        return  get_dataset_voc(stride)
     elif dataset_name == 'penn_fud':
-        return get_dataset_pf()
+        return get_dataset_pf(stride)
     else:
         logger.error(f'No datasets with name : {dataset_name}')
 
-def get_dataset_pf():
+def get_dataset_pf(stride):
     ROOT_DIR = 'data/PennFudanPed'
 
-    dataset_train = PennFudanDataset(ROOT_DIR, train=True)
-    dataset_test = PennFudanDataset(ROOT_DIR, train=False)
+    dataset_train = PennFudanDataset(ROOT_DIR, train=True, stride=stride)
+    dataset_test = PennFudanDataset(ROOT_DIR, train=False, stride=stride)
 
     test_split_index = 50
 
@@ -42,7 +42,7 @@ def get_dataset_pf():
 
     return dataset_train, dataset_test
 
-def get_dataset_voc():
+def get_dataset_voc(stride):
 
     dataset_train = PascalVOCDataset('./data/VOCdevkit/', 'TRAIN', transforms=None)
     dataset_test = PascalVOCDataset('./data/VOCdevkit/', 'TRAIN', transforms=None)
@@ -63,9 +63,14 @@ def main():
 
     seed_everything(1024)
 
-    num_epochs = 30
+    experiment_name = '3_1024_mesh_fm1'
+    num_epochs = 50
     dataset_name = 'penn_fud' # voc, penn_fud
-    experiment_name = '3_256_mesh'
+    feature_map = 1
+    add_mesh = True
+
+    strides = { i: 2**(i+3) for i in range(4) } 
+    stride = strides[feature_map]
 
     tb_writer = create_tb_writer(experiment_name, dataset_name)
 
@@ -74,14 +79,14 @@ def main():
 
     device = get_device()
 
-    dataset_train, dataset_test = get_dataset(dataset_name)
+    dataset_train, dataset_test = get_dataset(dataset_name, stride)
 
     # dataset_train = Subset(dataset_train, range(4))
 
     data_loader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers=0)
     data_loader_test = DataLoader(dataset_test, batch_size=8, shuffle=False, num_workers=0)
 
-    model = create_model().to(device)
+    model = create_model(feature_map, add_mesh).to(device)
 
     criterion = Criterion()
     # test_loss(model, data_loader_train)

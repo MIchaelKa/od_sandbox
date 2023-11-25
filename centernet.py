@@ -25,22 +25,22 @@ class SharedHead(nn.Module):
         return x
     
 class DecoupledHead(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels):
         super().__init__()
 
-        in_channels = [258, 258, 258]
+        # in_channels = [258, 258, 258]
         # in_channels = [256, 512, 512, 512]
-        # in_channels = [258, 512, 1024]
+        channels = [in_channels, 512, 1024]
 
         conv = []
-        for i in range(len(in_channels)-1):
-            conv.append(nn.Conv2d(in_channels[i], in_channels[i+1], kernel_size=3, stride=1, padding=1))
-            conv.append(nn.BatchNorm2d(in_channels[i+1]))
+        for i in range(len(channels)-1):
+            conv.append(nn.Conv2d(channels[i], channels[i+1], kernel_size=3, stride=1, padding=1))
+            conv.append(nn.BatchNorm2d(channels[i+1]))
             conv.append(nn.ReLU())
         self.conv = nn.Sequential(*conv)
 
-        self.head_reg = nn.Conv2d(in_channels[-1], 4, kernel_size=1, padding=0)
-        self.head_cls = nn.Conv2d(in_channels[-1], 1, kernel_size=1, padding=0)
+        self.head_reg = nn.Conv2d(channels[-1], 4, kernel_size=1, padding=0)
+        self.head_cls = nn.Conv2d(channels[-1], 1, kernel_size=1, padding=0)
 
     def forward(self, x):
         x = self.conv(x)
@@ -51,19 +51,27 @@ class DecoupledHead(nn.Module):
 
 class CenterNet(nn.Module):
 
-    def __init__(self, backbone):
+    def __init__(self, backbone, feature_map=0, add_mesh=False):
         super().__init__()
         self.backbone = backbone
-        self.head = DecoupledHead() # SharedHead, DecoupledHead
+        self.feature_map = feature_map
+        self.add_mesh = add_mesh
+
+        out_channels = self.backbone.out_channels
+        if add_mesh:
+            out_channels += 2
+
+        self.head = DecoupledHead(out_channels) # SharedHead, DecoupledHead
 
     def forward(self, x):
         features = self.backbone(x)
         features = list(features.values())
-        features = features[0]
+        features = features[self.feature_map]
 
-        b, c, h, w = features.shape
-        mesh = get_mesh(b, h, w).to(features.device)
-        features = torch.cat([features, mesh], 1)
+        if self.add_mesh:
+            b, c, h, w = features.shape
+            mesh = get_mesh(b, h, w).to(features.device)
+            features = torch.cat([features, mesh], 1)
         
         out = self.head(features)
         return out
@@ -77,14 +85,14 @@ def get_mesh(batch_size, shape_x, shape_y):
     mesh = torch.cat([torch.tensor(mg_x), torch.tensor(mg_y)], 1)
     return mesh
    
-def create_model():
+def create_model(feature_map, add_mesh):
     backbone = resnet_fpn_backbone(
         'resnet18', # resnet18, resnet50
         pretrained=True,
         trainable_layers=5,
         returned_layers=[2,3]
     )
-    net = CenterNet(backbone)
+    net = CenterNet(backbone, feature_map, add_mesh)
     return net
 
 if __name__ == "__main__":
