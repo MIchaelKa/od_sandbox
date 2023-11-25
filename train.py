@@ -1,11 +1,11 @@
 
+import torch
+from torch.utils.data import Subset, DataLoader
+
 from centernet import create_model
 
 from dataset.penn_fudan_dataset import PennFudanDataset
 from dataset.pascal_voc_dataset import PascalVOCDataset
-
-import torch
-from torch.utils.data import Subset, DataLoader
 
 from common.logger import logger
 import logging
