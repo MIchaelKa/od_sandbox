@@ -25,10 +25,12 @@ class Trainer():
 
         logger.info('start training...')
 
+        # self.make_predictions(0, val_loader)
+
         for epoch in range(num_epochs):
             logger.info('train epoch: {}'.format(epoch))
             self.train_epoch(epoch, train_loader)
-            self.make_predictions(0, val_loader)
+            self.make_predictions(epoch, val_loader)
 
         if self.save_checkpoint:
             torch.save(self.model.state_dict(), self.model_save_name)
@@ -52,12 +54,13 @@ class Trainer():
         batch_pred = batch_pred.detach().cpu() # (B, 5, W, H)
         images = images.detach().cpu()
         gt_masks = gt_masks.detach().cpu()
+        gt_bboxs = gt_bboxs.detach().cpu()
 
-        pred_masks = batch_pred[:2,0,:,:].unsqueeze(1)
-        grid_masks = torchvision.utils.make_grid(pred_masks)
-        self.tb_writer.add_image('masks', grid_masks, 0)
+        # pred_masks = batch_pred[:2,0,:,:].unsqueeze(1)
+        # grid_masks = torchvision.utils.make_grid(pred_masks)
+        # self.tb_writer.add_image('masks', grid_masks, 0)
 
-        self.tb_writer.add_images('images', images, 0)
+        # self.tb_writer.add_images('images', images, 0)
 
         # pred.shape = (5, W, H)
         for i, pred in enumerate(batch_pred):
