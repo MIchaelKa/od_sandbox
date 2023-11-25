@@ -17,8 +17,13 @@ from criterion import *
 
 from trainer import Trainer
 
-def get_dataset():
-    return  get_dataset_voc()
+def get_dataset(dataset_name):
+    if dataset_name == 'voc':
+        return  get_dataset_voc()
+    elif dataset_name == 'penn_fud':
+        return get_dataset_pf()
+    else:
+        logger.error(f'No datasets with name : {dataset_name}')
 
 def get_dataset_pf():
     ROOT_DIR = 'data/PennFudanPed'
@@ -58,15 +63,18 @@ def main():
 
     seed_everything(1024)
 
+    num_epochs = 30
+    dataset_name = 'penn_fud' # voc, penn_fud
     experiment_name = 'base'
-    tb_writer = create_tb_writer(experiment_name)
+
+    tb_writer = create_tb_writer(experiment_name, dataset_name)
 
     # DEBUG INFO WARNING ERROR CRITICAL
     logger.setLevel(logging.INFO)
 
     device = get_device()
 
-    dataset_train, dataset_test = get_dataset()
+    dataset_train, dataset_test = get_dataset(dataset_name)
 
     # dataset_train = Subset(dataset_train, range(4))
 
@@ -74,12 +82,11 @@ def main():
     data_loader_test = DataLoader(dataset_test, batch_size=8, shuffle=False, num_workers=0)
 
     model = create_model().to(device)
+
+    criterion = Criterion()
     # test_loss(model, data_loader_train)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-
-    criterion = Criterion()
-    num_epochs = 20
 
     trainer = Trainer(
         model=model,

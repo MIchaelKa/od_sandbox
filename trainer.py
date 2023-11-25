@@ -16,7 +16,7 @@ class Trainer():
         version = 2
         self.model_save_name = f'./ckpts/{model_name}_v{version}.pth'
 
-        self.print_every = 10
+        self.print_every = 1
 
         self.save_checkpoint = True
 
@@ -30,12 +30,12 @@ class Trainer():
 
         logger.info('start training...')
 
-        self.visualizer.vis_preds(0, val_loader)
+        # self.visualizer.vis_preds(0, val_loader)
 
-        # for epoch in range(num_epochs):
-        #     logger.info('train epoch: {}'.format(epoch))
-        #     self.train_epoch(epoch, train_loader)
-        #     self.make_predictions(epoch, val_loader)
+        for epoch in range(num_epochs):
+            logger.info('train epoch: {}'.format(epoch))
+            self.train_epoch(epoch, train_loader)
+            self.visualizer.vis_preds(epoch, val_loader)
 
         if self.save_checkpoint:
             torch.save(self.model.state_dict(), self.model_save_name)
