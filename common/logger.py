@@ -24,3 +24,15 @@ def create_tb_writer(experiment_name, dataset_name):
     tensorboard_folder = f'{current_time}_{experiment_name}'
     writer = SummaryWriter(f'./runs/{dataset_name}/{tensorboard_folder}/')
     return writer
+
+import datetime as dt
+
+def format_time(elapsed):
+    '''
+    Takes a time in seconds and returns a string hh:mm:ss
+    '''
+    # Round to the nearest second.
+    elapsed_rounded = int(round((elapsed)))
+    
+    # Format as hh:mm:ss
+    return str(dt.timedelta(seconds=elapsed_rounded))

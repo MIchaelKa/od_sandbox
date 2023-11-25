@@ -1,7 +1,7 @@
 import torch
 
-from common.logger import logger
-
+import time
+from common.logger import logger, format_time
 from common.visualizer import Visualizer
 
 class Trainer():
@@ -28,18 +28,30 @@ class Trainer():
 
     def fit(self, train_loader, val_loader, num_epochs):
 
+        t0 = time.time()
         logger.info('start training...')
 
-        # self.visualizer.vis_preds(0, val_loader)
-
         for epoch in range(num_epochs):
+
+            t1 = time.time()
             logger.info('train epoch: {}'.format(epoch))
+
             self.train_epoch(epoch, train_loader)
-            self.visualizer.vis_preds(epoch, val_loader)
+
+            epoch_time = time.time() - t1
+            self.tb_writer.add_scalar('train/epoch_time', epoch_time, epoch)
+            logger.info('finish epoch: {}, epoch_time: {}'.format(epoch, format_time(epoch_time)))
+
+            t2 = time.time()
+            self.visualizer.vis_preds(epoch, train_loader, split='train')
+            self.visualizer.vis_preds(epoch, val_loader, split='val')
+            logger.info('vis_time: {}'.format(format_time(time.time() - t2)))
 
         if self.save_checkpoint:
             torch.save(self.model.state_dict(), self.model_save_name)
             logger.info(f'model saved to {self.model_save_name}')
+
+        logger.info(f'finish training, time: {format_time(time.time() - t0)}')
 
         self.tb_writer.close()
             

@@ -15,8 +15,8 @@ class Visualizer:
         self.device = device
         self.tb_writer = tb_writer
 
-    def vis_preds(self, epoch, data_loader):
-            
+    def vis_preds(self, epoch, data_loader, split='val', num_vis=4):
+
         # get one batch
         data_tensor = next(iter(data_loader))
         images, gt_masks, gt_bboxs = data_tensor
@@ -28,7 +28,7 @@ class Visualizer:
         self.model.eval()
         batch_pred = self.model(images)
 
-        batch_pred = batch_pred.detach().cpu() # (B, 5, W, H)
+        batch_pred = batch_pred.detach().cpu()[:num_vis] # (B, 5, W, H)
 
         images = images.detach().cpu().numpy()
         gt_masks = gt_masks.detach().cpu().numpy()
@@ -59,7 +59,7 @@ class Visualizer:
 
             image_to_draw = np.stack([gt_img, gt_mask_img, pred_img, pred_mask_img], axis=0)
 
-            self.tb_writer.add_images(f'test_image/{i}', image_to_draw, epoch, dataformats='NHWC')
+            self.tb_writer.add_images(f'{split}_image/{i}', image_to_draw, epoch, dataformats='NHWC')
 
     def extract_bboxs(self, bboxs, mask):
         bboxs = np.transpose(bboxs, (1, 2, 0)) * 384 # (W, H, 4)
