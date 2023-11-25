@@ -28,13 +28,14 @@ class DecoupledHead(nn.Module):
     def __init__(self):
         super().__init__()
 
-        in_channels = [256, 256, 256, 256]
+        in_channels = [258, 258, 258]
         # in_channels = [256, 512, 512, 512]
+        # in_channels = [258, 512, 1024]
 
         conv = []
         for i in range(len(in_channels)-1):
             conv.append(nn.Conv2d(in_channels[i], in_channels[i+1], kernel_size=3, stride=1, padding=1))
-            # conv.append(nn.BatchNorm2d(256))
+            conv.append(nn.BatchNorm2d(in_channels[i+1]))
             conv.append(nn.ReLU())
         self.conv = nn.Sequential(*conv)
 
@@ -60,9 +61,9 @@ class CenterNet(nn.Module):
         features = list(features.values())
         features = features[0]
 
-        # b, c, h, w = features.shape
-        # mesh = get_mesh(b, h, w)
-        # features = torch.cat([features, mesh], 1)
+        b, c, h, w = features.shape
+        mesh = get_mesh(b, h, w).to(features.device)
+        features = torch.cat([features, mesh], 1)
         
         out = self.head(features)
         return out

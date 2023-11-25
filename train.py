@@ -65,7 +65,7 @@ def main():
 
     num_epochs = 30
     dataset_name = 'penn_fud' # voc, penn_fud
-    experiment_name = 'base'
+    experiment_name = '3_256_mesh'
 
     tb_writer = create_tb_writer(experiment_name, dataset_name)
 

@@ -31,6 +31,8 @@ class Trainer():
         t0 = time.time()
         logger.info('start training...')
 
+        vis_last_epoch = 3
+
         for epoch in range(num_epochs):
 
             t1 = time.time()
@@ -42,10 +44,11 @@ class Trainer():
             self.tb_writer.add_scalar('train/epoch_time', epoch_time, epoch)
             logger.info('finish epoch: {}, epoch_time: {}'.format(epoch, format_time(epoch_time)))
 
-            t2 = time.time()
-            self.visualizer.vis_preds(epoch, train_loader, split='train')
-            self.visualizer.vis_preds(epoch, val_loader, split='val')
-            logger.info('vis_time: {}'.format(format_time(time.time() - t2)))
+            if epoch > num_epochs - vis_last_epoch - 1:
+                t2 = time.time()
+                self.visualizer.vis_preds(epoch, train_loader, split='train')
+                self.visualizer.vis_preds(epoch, val_loader, split='val')
+                logger.info('vis epoch: {}, vis_time: {}'.format(epoch, format_time(time.time() - t2)))
 
         if self.save_checkpoint:
             torch.save(self.model.state_dict(), self.model_save_name)
