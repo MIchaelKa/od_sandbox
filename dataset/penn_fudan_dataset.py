@@ -1,6 +1,7 @@
 import os
 import random
 import numpy as np
+import math
 
 from torch.utils.data import Dataset
 
@@ -78,16 +79,16 @@ class PennFudanDataset(Dataset):
             ymin = np.min(pos[0])
             ymax = np.max(pos[0])
 
-            x = xmin + (xmax - xmin) // 2
-            y = ymin + (ymax - ymin) // 2
+            x = xmin + (xmax - xmin) / 2
+            y = ymin + (ymax - ymin) / 2
 
+            # TODO: is it correct to use floor?
+            # floor fixes oob error for small feature maps
             x = x * (IMG_WIDTH / orig_width)
-            x = x / self.stride
-            x = np.round(x).astype('int')
-
+            x = math.floor(x / self.stride)
+            
             y = y * (IMG_HEIGHT / orig_height)
-            y = y / self.stride
-            y = np.round(y).astype('int')
+            y = math.floor(y / self.stride)
 
             center_mask[y, x] = 1
             # center_mask[y-self.g_kernel_w:y+self.g_kernel_w+1,

@@ -63,7 +63,7 @@ def main():
 
     seed_everything(1024)
 
-    experiment_name = '3_1024_mesh_fm1'
+    experiment_name = '3_1024_mesh_fm1_floor'
     num_epochs = 50
     dataset_name = 'penn_fud' # voc, penn_fud
     feature_map = 1
