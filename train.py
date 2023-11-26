@@ -70,7 +70,7 @@ def main():
 
     # v2 = 3_1024_mesh_fm1
     experiment_version = 'v2'
-    experiment_name = 'cxcywh'
+    experiment_name = 'cxcywh_g'
     num_epochs = 50
     feature_map = 1
     add_mesh = True

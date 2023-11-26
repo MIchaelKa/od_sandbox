@@ -3,33 +3,13 @@ import torch.nn as nn
 
 from torch.nn import functional as F
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
-
-class SharedHead(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-
-        self.head = nn.Sequential(
-            nn.Conv2d(256, 128, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128, 5, kernel_size=1, padding=0),
-            # nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        x = self.head(x)
-        return x
     
-class DecoupledHead(nn.Module):
+class Head(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
 
-        # in_channels = [258, 258, 258]
-        # in_channels = [256, 512, 512, 512]
+        # in_channels = [in_channels, 258, 258]
+        # in_channels = [in_channels, 512, 512, 512]
         channels = [in_channels, 512, 1024]
 
         conv = []
@@ -39,6 +19,8 @@ class DecoupledHead(nn.Module):
             conv.append(nn.ReLU())
         self.conv = nn.Sequential(*conv)
 
+        # Same as using one nn.Conv2d(channels[-1], 5, kernel_size=1, padding=0)?
+        # Not the same since we want F.relu only for head_reg output
         self.head_reg = nn.Conv2d(channels[-1], 4, kernel_size=1, padding=0)
         self.head_cls = nn.Conv2d(channels[-1], 1, kernel_size=1, padding=0)
 
@@ -61,7 +43,7 @@ class CenterNet(nn.Module):
         if add_mesh:
             out_channels += 2
 
-        self.head = DecoupledHead(out_channels) # SharedHead, DecoupledHead
+        self.head = Head(out_channels)
 
     def forward(self, x):
         features = self.backbone(x)

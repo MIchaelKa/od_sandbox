@@ -35,7 +35,7 @@ class PennFudanDataset(Dataset):
         
         self.g_kernel_w = self.g_kernel.shape[0] // 2
 
-        self.gt_size = (self.size // self.stride, self.size // self.stride)
+        self.gt_size = self.size // self.stride
 
     def __len__(self):
         return len(self.imgs)
@@ -99,8 +99,8 @@ class PennFudanDataset(Dataset):
     def get_gt_xyxy(self, bboxs, orig_shape):
         orig_height, orig_width = orig_shape
 
-        center_mask = np.zeros(self.gt_size, dtype='float32')
-        regr_bbox = np.zeros((*self.gt_size, 4), dtype='float32')
+        center_mask = np.zeros((self.gt_size, self.gt_size), dtype='float32')
+        regr_bbox = np.zeros((self.gt_size, self.gt_size, 4), dtype='float32')
 
         for bbox in bboxs:
             xmin, ymin, xmax, ymax = bbox
@@ -131,8 +131,8 @@ class PennFudanDataset(Dataset):
 
         orig_height, orig_width = orig_shape
 
-        center_mask = np.zeros(self.gt_size, dtype='float32')
-        regr_bbox = np.zeros((*self.gt_size, 4), dtype='float32')
+        center_mask = np.zeros((self.gt_size, self.gt_size), dtype='float32')
+        regr_bbox = np.zeros((self.gt_size, self.gt_size, 4), dtype='float32')
 
         for bbox in bboxs:
             xmin, ymin, xmax, ymax = bbox
@@ -152,7 +152,30 @@ class PennFudanDataset(Dataset):
             cm_x = round(f_cx * self.size / self.stride) 
             cm_y = round(f_cy * self.size / self.stride)
 
-            center_mask[cm_y, cm_x] = 1
+            # center_mask[cm_y, cm_x] = 1
+
+            kernel = self.g_kernel
+            cm_y_min = cm_y-self.g_kernel_w
+            if cm_y_min < 0:
+                cm_y_min = 0
+                kernel = self.g_kernel[1:,:]
+
+            cm_y_max = cm_y+self.g_kernel_w+1
+            if cm_y_max > self.gt_size:
+                cm_y_max = self.gt_size
+                kernel = self.g_kernel[:-1,:]
+
+            cm_x_min = cm_x-self.g_kernel_w
+            if cm_x_min < 0:
+                cm_x_min = 0
+                kernel = self.g_kernel[:,1:]
+
+            cm_x_max = cm_x+self.g_kernel_w+1
+            if cm_x_max > self.gt_size:
+                cm_x_max = self.gt_size
+                kernel = self.g_kernel[:,:-1]
+
+            center_mask[cm_y_min:cm_y_max, cm_x_min:cm_x_max] = kernel
 
             # coordinates in resized image
             # center_mask -> orig_image
