@@ -69,12 +69,13 @@ def main():
     #
 
     # v2 = 3_1024_mesh_fm1
-    experiment_name = 'v2_cxcywh'
+    experiment_version = 'v2'
+    experiment_name = 'cxcywh'
     num_epochs = 50
     feature_map = 1
     add_mesh = True
 
-    dataset_format = 'xyxy'
+    dataset_format = 'cxcywh'
     assert(dataset_format in ['xyxy', 'cxcywh'])
 
     dataset_name = 'penn_fud' # voc, penn_fud
@@ -94,7 +95,11 @@ def main():
     # init
     #
 
-    tb_writer = create_tb_writer(experiment_name, dataset_name)
+    tb_writer = create_tb_writer(
+        experiment_name,
+        experiment_version,
+        dataset_name
+    )
 
     # DEBUG INFO WARNING ERROR CRITICAL
     logger.setLevel(logging.INFO)

@@ -19,10 +19,10 @@ logger = create_logger(__name__)
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 
-def create_tb_writer(experiment_name, dataset_name):
+def create_tb_writer(experiment_name, experiment_version, dataset_name):
     current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
     tensorboard_folder = f'{current_time}_{experiment_name}'
-    writer = SummaryWriter(f'./runs/{dataset_name}/{tensorboard_folder}/')
+    writer = SummaryWriter(f'./runs/{dataset_name}/{experiment_version}/{tensorboard_folder}/')
     return writer
 
 import datetime as dt
