@@ -23,6 +23,23 @@ def show_images(images, titles, size=5):
         # if i == (count - 1):
         #     plt.colorbar()
 
+def extract_bboxs(mask, bboxs, format, size, stride):
+    ys, xs = np.nonzero(mask)
+    bboxs = np.transpose(bboxs, (1, 2, 0)) * size
+    bboxs = np.int32(bboxs[ys, xs])
+
+    if format == 'cxcywh':        
+        cx = bboxs[:,0] + xs * stride + stride // 2
+        cy = bboxs[:,1] + ys * stride + stride // 2
+        w = bboxs[:,2]
+        h = bboxs[:,3]
+        
+        bboxs[:,0] = cx - w / 2
+        bboxs[:,1] = cy - h / 2
+        bboxs[:,2] = cx + w / 2
+        bboxs[:,3] = cy + h / 2
+
+    return bboxs
 
 def visualize_dataset(dataset, count=5, size=6):
     plt.figure(figsize=(count * size, size * 2))
@@ -31,13 +48,11 @@ def visualize_dataset(dataset, count=5, size=6):
         if i == count:
             break
 
-        # draw bbox
         color = (255, 0, 0)
         img_arr = np.array(T.ToPILImage()(img))
-        xs, ys = np.nonzero(mask)
-        bboxs = np.transpose(bboxs, (1, 2, 0))
-        center_bboxs = np.int32(bboxs[xs, ys])
-        for bbox in center_bboxs:
+        
+        bboxs = extract_bboxs(mask, bboxs, dataset.format, dataset.size, dataset.stride)
+        for bbox in bboxs:
             cv2.rectangle(img_arr, (bbox[0],bbox[1]), (bbox[2],bbox[3]), color, 2)
 
         # image    

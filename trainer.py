@@ -5,7 +5,7 @@ from common.logger import logger, format_time
 from common.visualizer import Visualizer
 
 class Trainer():
-    def __init__(self, model, device, criterion, optimizer, tb_writer):
+    def __init__(self, model, device, criterion, optimizer, tb_writer, dataset_info):
         self.model = model
         self.device = device
         self.criterion = criterion
@@ -24,6 +24,7 @@ class Trainer():
             model=model,
             device=device,
             tb_writer=tb_writer,
+            dataset_info=dataset_info
         )
 
     def fit(self, train_loader, val_loader, num_epochs):
@@ -47,6 +48,7 @@ class Trainer():
             self.tb_writer.add_scalar('train/epoch_time', epoch_time, epoch)
             logger.info('finish epoch: {}, epoch_time: {}'.format(epoch, format_time(epoch_time)))
 
+            # TODO: vis_every
             if epoch > num_epochs - vis_last_epoch - 1:
                 t2 = time.time()
                 self.visualizer.vis_preds(epoch, train_loader, split='train')

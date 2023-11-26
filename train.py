@@ -17,19 +17,19 @@ from criterion import *
 
 from trainer import Trainer
 
-def get_dataset(dataset_name, stride):
+def get_dataset(dataset_name, stride, format):
     if dataset_name == 'voc':
         return  get_dataset_voc(stride)
     elif dataset_name == 'penn_fud':
-        return get_dataset_pf(stride)
+        return get_dataset_pf(stride, format)
     else:
         logger.error(f'No datasets with name : {dataset_name}')
 
-def get_dataset_pf(stride):
+def get_dataset_pf(stride, format):
     ROOT_DIR = 'data/PennFudanPed'
 
-    dataset_train = PennFudanDataset(ROOT_DIR, train=True, stride=stride)
-    dataset_test = PennFudanDataset(ROOT_DIR, train=False, stride=stride)
+    dataset_train = PennFudanDataset(ROOT_DIR, train=True, stride=stride, format=format)
+    dataset_test = PennFudanDataset(ROOT_DIR, train=False, stride=stride, format=format)
 
     test_split_index = 50
 
@@ -58,19 +58,41 @@ def get_dataset_voc(stride):
 
     return dataset_train, dataset_test
 
+
     
 def main():
 
     seed_everything(1024)
 
-    experiment_name = '3_1024_mesh_fm1'
+    #
+    # config
+    #
+
+    # v2 = 3_1024_mesh_fm1
+    experiment_name = 'v2_cxcywh'
     num_epochs = 50
-    dataset_name = 'penn_fud' # voc, penn_fud
     feature_map = 1
     add_mesh = True
 
+    dataset_format = 'xyxy'
+    assert(dataset_format in ['xyxy', 'cxcywh'])
+
+    dataset_name = 'penn_fud' # voc, penn_fud
+    dataset_size = 384
+    
     strides = { i: 2**(i+3) for i in range(4) } 
     stride = strides[feature_map]
+
+    dataset_info = dict(
+        name=dataset_name,
+        format=dataset_format,
+        size=dataset_size,
+        stride=stride,
+    )
+
+    #
+    # init
+    #
 
     tb_writer = create_tb_writer(experiment_name, dataset_name)
 
@@ -79,7 +101,7 @@ def main():
 
     device = get_device()
 
-    dataset_train, dataset_test = get_dataset(dataset_name, stride)
+    dataset_train, dataset_test = get_dataset(dataset_name, stride, dataset_format)
 
     # dataset_train = Subset(dataset_train, range(4))
 
@@ -98,7 +120,8 @@ def main():
         device=device,
         criterion=criterion,
         optimizer=optimizer,
-        tb_writer=tb_writer
+        tb_writer=tb_writer,
+        dataset_info=dataset_info,
     )
     trainer.fit(data_loader_train, data_loader_test, num_epochs)
 

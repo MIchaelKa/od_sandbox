@@ -7,15 +7,20 @@ from transforms import unnormalize
 
 import cv2
 
+from draw_utils import extract_bboxs
+
 color_gt = (255, 0, 0)
 color_pred = (0, 255, 0)
 
 class Visualizer:
 
-    def __init__(self, model, device, tb_writer):
+    def __init__(self, model, device, tb_writer, dataset_info):
         self.model = model
         self.device = device
         self.tb_writer = tb_writer
+
+        # only for getting info for extract_bboxs
+        self.dataset_info = dataset_info 
 
     def vis_preds(self, epoch, data_loader, split='val', num_vis=4):
 
@@ -66,10 +71,14 @@ class Visualizer:
             self.tb_writer.add_images(f'{split}_image/{i}', image_to_draw, epoch, dataformats='NHWC')
 
     def extract_bboxs(self, bboxs, mask):
-        bboxs = np.transpose(bboxs, (1, 2, 0)) * 384 # (W, H, 4)
-        xs, ys = np.nonzero(mask)
-        bboxs = np.int32(bboxs[xs, ys]) # (N, 4)
-        return bboxs
+        return extract_bboxs(
+            mask,
+            bboxs,
+            self.dataset_info['format'],
+            self.dataset_info['size'],
+            self.dataset_info['stride']
+        )
+
 
     def draw_bboxs(self, image, bboxs, color):
         image = (image * 255).astype(np.uint8)
