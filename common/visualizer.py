@@ -32,7 +32,7 @@ class Visualizer:
 
         batch_pred = batch_pred.detach().cpu()[:num_vis] # (B, 5, W, H)
 
-        images = unnormalize(images)
+        # images = unnormalize(images)
 
         images = images.detach().cpu().numpy()
         gt_masks = gt_masks.detach().cpu().numpy()

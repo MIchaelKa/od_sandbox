@@ -6,6 +6,6 @@ norm_imagenet = {
 }
 
 def unnormalize(img, norm=norm_imagenet):
-    img = img * torch.tensor(norm['std']).view(3, 1, 1)
-    img = img + torch.tensor(norm['mean']).view(3, 1, 1)
+    img = img * torch.tensor(norm['std']).to(img.device).view(3, 1, 1)
+    img = img + torch.tensor(norm['mean']).to(img.device).view(3, 1, 1)
     return img

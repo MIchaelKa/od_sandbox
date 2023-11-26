@@ -59,7 +59,7 @@ class PennFudanDataset(Dataset):
         # mask = TF.resize(mask, (IMG_WIDTH, IMG_HEIGHT))
 
         img = TF.to_tensor(img).float()
-        img = TF.normalize(img, norm_imagenet['mean'], norm_imagenet['std'])
+        # img = TF.normalize(img, norm_imagenet['mean'], norm_imagenet['std'])
         
         mask = np.array(mask)
         obj_ids = np.unique(mask)
@@ -84,13 +84,13 @@ class PennFudanDataset(Dataset):
             x = xmin + (xmax - xmin) / 2
             y = ymin + (ymax - ymin) / 2
 
-            # TODO: is it correct to use floor?
-            # floor fixes oob error for small feature maps
+            # TODO: is it correct to use math.floor?
+            # math.floor fixes oob error for small feature maps
             x = x * (IMG_WIDTH / orig_width)
-            x = math.floor(x / self.stride)
+            x = round(x / self.stride)
             
             y = y * (IMG_HEIGHT / orig_height)
-            y = math.floor(y / self.stride)
+            y = round(y / self.stride)
 
             center_mask[y, x] = 1
             # center_mask[y-self.g_kernel_w:y+self.g_kernel_w+1,
