@@ -33,6 +33,9 @@ class Trainer():
 
         vis_last_epoch = 3
 
+        # self.visualizer.vis_preds(0, val_loader, split='val')
+        # return
+
         for epoch in range(num_epochs):
 
             t1 = time.time()

@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import torchvision
 
+from transforms import unnormalize
+
 import cv2
 
 color_gt = (255, 0, 0)
@@ -29,6 +31,8 @@ class Visualizer:
         batch_pred = self.model(images)
 
         batch_pred = batch_pred.detach().cpu()[:num_vis] # (B, 5, W, H)
+
+        images = unnormalize(images)
 
         images = images.detach().cpu().numpy()
         gt_masks = gt_masks.detach().cpu().numpy()

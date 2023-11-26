@@ -8,6 +8,8 @@ from torch.utils.data import Dataset
 from torchvision.transforms import functional as TF
 from PIL import Image
 
+from transforms import norm_imagenet
+
 IMG_WIDTH = 384
 IMG_HEIGHT = IMG_WIDTH
 
@@ -53,11 +55,11 @@ class PennFudanDataset(Dataset):
             img, mask = self.transform(img, mask)
 
         img = TF.resize(img, (IMG_WIDTH, IMG_HEIGHT))
-
         # can't resize mask due to incorrect result (see colab notebook)
         # mask = TF.resize(mask, (IMG_WIDTH, IMG_HEIGHT))
 
         img = TF.to_tensor(img).float()
+        img = TF.normalize(img, norm_imagenet['mean'], norm_imagenet['std'])
         
         mask = np.array(mask)
         obj_ids = np.unique(mask)
