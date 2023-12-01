@@ -130,5 +130,45 @@ def main():
     )
     trainer.fit(data_loader_train, data_loader_test, num_epochs)
 
+
+def debug():
+
+    seed_everything(1024)
+
+    dataset_format = 'cxcywh' # ['xyxy', 'cxcywh']
+    dataset_name = 'penn_fud' # voc, penn_fud
+    stride = 8
+
+    dataset_train, dataset_test = get_dataset(dataset_name, stride, dataset_format)
+
+    index = 0
+    image, mask, bboxs = dataset_test[index]
+
+    print(image.shape)
+    # print(bboxs.shape)
+
+    import torchvision
+    from torchvision.models.detection.fcos import FCOS_ResNet50_FPN_Weights
+    
+    model = torchvision.models.detection.fcos_resnet50_fpn(weights=FCOS_ResNet50_FPN_Weights.DEFAULT)
+    # model.eval()
+
+    bboxs = torch.tensor([
+        [5,10,20,30],
+        [50,50,100,120],
+        [200,200,220,250]
+    ])
+    labels = torch.tensor([1,2,3]).long()
+    targets = dict(
+        boxes=bboxs,
+        labels=labels,
+    )
+
+    image = image.unsqueeze(0)
+    outputs = model(image, [targets]) 
+
+    # print(outputs)
+
 if __name__ == "__main__":
-    main()
+    # main()
+    debug()
